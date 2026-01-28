@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import re  # <--- Biblioteca adicionada para encontrar o CSV no texto
 from google import genai
 from google.genai import types
 
@@ -14,7 +15,6 @@ except KeyError:
     st.stop()
 
 # --- ESCOLHA DO MODELO ---
-# Usando o nome EXATO que apareceu na sua lista (Turno 15)
 MODELO_ESCOLHIDO = "gemini-flash-latest"
 
 # Configuração da página
@@ -93,6 +93,7 @@ if uploaded_file and st.button("Analisar Documento"):
         st.divider()
         st.subheader("Relatório de Auditoria")
         
+        # Função geradora para o stream
         def stream_parser():
             stream = client.models.generate_content_stream(
                 model=MODELO_ESCOLHIDO,
@@ -103,7 +104,27 @@ if uploaded_file and st.button("Analisar Documento"):
                 if chunk.text:
                     yield chunk.text
 
-        st.write_stream(stream_parser)
+        # 1. Exibe o stream E captura o texto final completo na variável 'response_text'
+        response_text = st.write_stream(stream_parser)
+
+        # 2. Lógica para extrair o CSV e criar o botão
+        # Busca por conteúdo entre ```csv e ``` ou apenas ``` e ```
+        match = re.search(r"```(?:csv)?\n(.*?)```", response_text, re.DOTALL)
+
+        if match:
+            csv_data = match.group(1).strip() # O .strip() remove quebras de linha extras no começo/fim
+            
+            st.markdown("---")
+            st.success("✅ Análise finalizada. Baixe os dados para Excel abaixo:")
+            
+            st.download_button(
+                label="📥 Baixar Planilha (.csv)",
+                data=csv_data,
+                file_name="auditoria_juridica.csv",
+                mime="text/csv"
+            )
+        else:
+            st.warning("⚠️ O relatório foi gerado, mas o sistema não encontrou o bloco de dados CSV para download automático.")
 
     except Exception as e:
         st.error(f"Ocorreu um erro: {e}")
