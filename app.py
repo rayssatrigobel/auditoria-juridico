@@ -115,11 +115,11 @@ if uploaded_file and st.button("Analisar Documento"):
             csv_data = match.group(1).strip() # O .strip() remove quebras de linha extras no começo/fim
             
             st.markdown("---")
-            st.success("✅ Análise finalizada. Baixe os dados para Excel abaixo:")
+            st.success("Análise finalizada. Baixe os dados para Excel abaixo:")
             
-            st.download_button(
-                label="📥 Baixar Planilha (.csv)",
-                data=csv_data,
+           st.download_button(
+                label="Baixar Planilha (.csv)",
+                data=csv_data.encode('utf-8-sig'), 
                 file_name="auditoria_juridica.csv",
                 mime="text/csv"
             )
@@ -128,3 +128,4 @@ if uploaded_file and st.button("Analisar Documento"):
 
     except Exception as e:
         st.error(f"Ocorreu um erro: {e}")
+
