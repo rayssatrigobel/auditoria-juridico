@@ -117,8 +117,8 @@ if uploaded_file and st.button("Analisar Documento"):
             st.markdown("---")
             st.success("Análise finalizada. Baixe os dados para Excel abaixo:")
             
-           st.download_button(
-                label="Baixar Planilha (.csv)",
+            st.download_button(
+                label="📥 Baixar Planilha (.csv)",
                 data=csv_data.encode('utf-8-sig'), 
                 file_name="auditoria_juridica.csv",
                 mime="text/csv"
@@ -128,4 +128,3 @@ if uploaded_file and st.button("Analisar Documento"):
 
     except Exception as e:
         st.error(f"Ocorreu um erro: {e}")
-
