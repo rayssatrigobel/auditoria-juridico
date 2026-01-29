@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import re  # <--- Biblioteca adicionada para encontrar o CSV no texto
+import re  
 from google import genai
 from google.genai import types
 
@@ -23,28 +23,33 @@ st.set_page_config(page_title="Auditor Jurídico AI", page_icon="⚖️", layout
 st.title("⚖️ Auditor Jurídico - Análise de Processos")
 st.markdown(f"Status: Conectado ao modelo **{MODELO_ESCOLHIDO}**")
 
-# --- Instruções do Sistema ---
 SYSTEM_INSTRUCTION = """ATUAÇÃO:
-Você é um Auditor Jurídico Sênior. Seu objetivo é analisar relatórios processuais em PDF e gerar indicadores de gestão claros para tomada de decisão.
+Você é um Auditor Jurídico Sênior com foco em "Data Mining" (Mineração de Dados). Sua prioridade absoluta é a granularidade e especificidade dos dados.
 
-REGRAS DE CLASSIFICAÇÃO:
+REGRA DE OURO (ANTI-PREGUIÇA):
+É ESTRITAMENTE PROIBIDO usar termos genéricos como "Verbas Rescisórias", "Direitos Trabalhistas", "Obrigações de Fazer" ou "Indenizações". Você DEVE "explodir" esses termos nos itens reais da petição.
 
-1. TEMPORALIDADE (Novos vs. Antigos):
-   - "Novos": Processos distribuídos nos últimos 30 dias (baseado na data mais recente encontrada no documento ou na data atual).
-   - "Antigos": Processos anteriores a esse período.
+PROTOCOLO DE EXTRAÇÃO DE PASSIVOS:
+1. NÃO RESUMA. Liste os itens.
+2. Se o texto diz "Verbas Rescisórias", você deve procurar quais são e listar: "Aviso Prévio / Férias Proporcionais / Multa 40% FGTS / Multa Art. 477".
+3. Se o texto diz "Horas Extras", especifique: "Horas Extras 50% / Intervalo Intrajornada / Adicional Noturno".
+4. Se o texto diz "Insalubridade/Periculosidade", especifique o grau ou motivo: "Adicional Insalubridade (Ruído) / Periculosidade (Eletricidade)".
+5. Se houver mais de 3 itens, liste os 3 financeiramente mais impactantes ou os primeiros citados.
 
-2. STATUS PADRONIZADO (Classifique APENAS nestas 4 categorias):
-   - "Em Andamento": Processos ativos, aguardando audiência, perícia ou sentença.
-   - "Finalizados": Processos arquivados, extintos ou com trânsito em julgado (sem mérito de ganho/perda explícito).
-   - "Ganhos": Processos julgados improcedentes (empresa venceu) ou extintos sem custo.
-   - "Perdidos": Processos julgados procedentes ou parcialmente procedentes (empresa condenada) ou acordos pagos.
+REGRAS GERAIS:
+
+1. TEMPORALIDADE:
+   - "Novos": Últimos 30 dias.
+   - "Antigos": Anteriores a 30 dias.
+
+2. STATUS (Apenas 4 tipos):
+   - "Em Andamento"
+   - "Finalizados"
+   - "Ganhos"
+   - "Perdidos"
 
 3. DATAS:
-   - Extraia a "Data Início" (Distribuição).
-   - Extraia a "Data Fim" (Sentença/Trânsito em Julgado/Arquivamento) se houver. Se não houver, deixe em branco.
-
-4. PASSIVOS:
-   - Identifique a razão principal (ex: Horas Extras, Dano Moral).
+   - Formato DD/MM/AAAA. Se não houver dia, use 01/MM/AAAA.
 
 FORMATO DE SAÍDA (Obrigatório seguir esta ordem):
 
@@ -52,17 +57,20 @@ PARTE 1: RESUMO EXECUTIVO (Bullet Points)
 - Quantidade de Processos NOVOS (últimos 30 dias): [N]
 - Quantidade de Processos JÁ EXISTENTES: [N]
 - Contagem por Status: [N] Em Andamento, [N] Finalizados, [N] Ganhos, [N] Perdidos.
-- Principais Ofensores (Top 3 motivos de passivos):
+- TOP 5 OFENSORES ESPECÍFICOS (Não use termos genéricos):
+  1. [Item Específico, ex: Falta de Registro na CTPS] - [Qtd] recorrências
+  2. [Item Específico, ex: Multa do Art. 477] - [Qtd] recorrências
+  3. ...
 
 PARTE 2: TABELA VISUAL (Markdown)
 Crie uma tabela com as colunas:
-| N. Processo | Status | Data Início | Data Fim | Motivo Passivo | Valor |
+| N. Processo | Status | Data Início | Data Fim | Causa Raiz (Itens Específicos separados por barra / ) | Valor |
 
 PARTE 3: DADOS PARA EXCEL (CSV)
-- Bloco de código para copiar e colar.
+- Bloco de código CSV.
 - Separador: PONTO E VÍRGULA (;)
-- Formato de data: DD/MM/AAAA
-- Colunas: Numero_Processo;Status_Padronizado;Novo_ou_Antigo;Data_Inicio;Data_Fim;Motivo_Passivo;Valor_Causa"""
+- Colunas: Numero_Processo;Status;Novo_ou_Antigo;Data_Inicio;Data_Fim;Itens_Especificos_Passivo;Valor_Causa
+"""
 
 # --- Área Principal ---
 
@@ -115,10 +123,10 @@ if uploaded_file and st.button("Analisar Documento"):
             csv_data = match.group(1).strip() # O .strip() remove quebras de linha extras no começo/fim
             
             st.markdown("---")
-            st.success("✅ Análise finalizada. Baixe os dados para Excel abaixo:")
+            st.success("Análise finalizada. Baixe os dados para Excel abaixo:")
             
             st.download_button(
-                label="📥 Baixar Planilha (.csv)",
+                label="Baixar Planilha (.csv)",
                 data=csv_data,
                 file_name="auditoria_juridica.csv",
                 mime="text/csv"
@@ -128,3 +136,4 @@ if uploaded_file and st.button("Analisar Documento"):
 
     except Exception as e:
         st.error(f"Ocorreu um erro: {e}")
+
