@@ -4,7 +4,6 @@ import re
 from google import genai
 from google.genai import types
 
-# --- CONFIGURAÇÕES DE SEGURANÇA ---
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
 except FileNotFoundError:
@@ -14,10 +13,8 @@ except KeyError:
     st.error("Chave 'GEMINI_API_KEY' não encontrada no secrets.toml.")
     st.stop()
 
-# --- ESCOLHA DO MODELO ---
 MODELO_ESCOLHIDO = "gemini-flash-latest"
 
-# Configuração da página
 st.set_page_config(page_title="Auditor Jurídico AI", page_icon="⚖️", layout="wide")
 
 st.title("⚖️ Auditor Jurídico - Análise de Processos")
@@ -71,9 +68,6 @@ PARTE 3: DADOS PARA EXCEL (CSV)
 - Separador: PONTO E VÍRGULA (;)
 - Colunas: Numero_Processo;Status;Novo_ou_Antigo;Data_Inicio;Data_Fim;Itens_Especificos_Passivo;Valor_Causa
 """
-
-# --- Área Principal ---
-
 uploaded_file = st.file_uploader("Faça upload do relatório processual (PDF)", type=["pdf"])
 
 if uploaded_file and st.button("Analisar Documento"):
@@ -101,7 +95,6 @@ if uploaded_file and st.button("Analisar Documento"):
         st.divider()
         st.subheader("Relatório de Auditoria")
         
-        # Função geradora para o stream
         def stream_parser():
             stream = client.models.generate_content_stream(
                 model=MODELO_ESCOLHIDO,
@@ -112,15 +105,12 @@ if uploaded_file and st.button("Analisar Documento"):
                 if chunk.text:
                     yield chunk.text
 
-        # 1. Exibe o stream E captura o texto final completo na variável 'response_text'
         response_text = st.write_stream(stream_parser)
 
-        # 2. Lógica para extrair o CSV e criar o botão
-        # Busca por conteúdo entre ```csv e ``` ou apenas ``` e ```
         match = re.search(r"```(?:csv)?\n(.*?)```", response_text, re.DOTALL)
 
         if match:
-            csv_data = match.group(1).strip() # O .strip() remove quebras de linha extras no começo/fim
+            csv_data = match.group(1).strip()
             
             st.markdown("---")
             st.success("Análise finalizada. Baixe os dados para Excel abaixo:")
@@ -136,4 +126,5 @@ if uploaded_file and st.button("Analisar Documento"):
 
     except Exception as e:
         st.error(f"Ocorreu um erro: {e}")
+
 
